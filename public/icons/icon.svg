@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nexus POS">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <path d="M116 142c0-22 18-40 40-40h200c22 0 40 18 40 40v228c0 22-18 40-40 40H156c-22 0-40-18-40-40V142Z" fill="#0f766e"/>
+  <path d="M154 150c0-9 7-16 16-16h172c9 0 16 7 16 16v86c0 9-7 16-16 16H170c-9 0-16-7-16-16v-86Z" fill="#ecfeff"/>
+  <path d="M178 289h52v52h-52v-52Zm76 0h52v52h-52v-52Zm76 0h52v52h-52v-52ZM178 361h128v28H178v-28Z" fill="#ccfbf1"/>
+  <path d="M186 178h140v20H186v-20Zm0 34h92v16h-92v-16Z" fill="#0f172a"/>
+  <path d="M109 406h294v38H109z" fill="#84cc16"/>
+</svg>
