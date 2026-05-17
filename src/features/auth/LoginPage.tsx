@@ -18,7 +18,7 @@ export const LoginPage = () => {
   const locked = useAppStore((state) => state.locked);
   const [mode, setMode] = useState<'pin' | 'admin'>('pin');
   const [pin, setPin] = useState('');
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -163,7 +163,7 @@ export const LoginPage = () => {
           </form>
         )}
 
-        <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400">Default admin: admin / admin123. Cashier PIN: 1234.</p>
+        <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400">Sign in with your assigned admin account or cashier PIN.</p>
       </section>
     </div>
   );

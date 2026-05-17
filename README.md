@@ -29,18 +29,9 @@ npm run preview
 
 Local preview defaults to `http://localhost:4173`.
 
-## Default Login
+## First Login
 
-Admin:
-
-- Username: `admin`
-- Password: `admin123`
-
-Cashier:
-
-- PIN: `1234`
-
-Change these credentials in the Users page after first install.
+Use the initial account configured for your installation, then rotate credentials from the Users page before live operation.
 
 ## Android Install
 
