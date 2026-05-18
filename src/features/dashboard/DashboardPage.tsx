@@ -1,13 +1,17 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Banknote, CreditCard, Receipt, RefreshCcw, ShoppingBag, TrendingUp } from 'lucide-react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../../db/db';
-import type { Sale } from '../../db/schema';
+import type { PaymentMethod, Sale } from '../../db/schema';
 import { useLiveQuery } from '../../hooks/useLiveQuery';
 import { useAppStore } from '../../store/appStore';
 import { isSameDay, money, paymentLabel, shortDateTime, startOfDayIso } from '../../utils/format';
 
+const paymentMethods: PaymentMethod[] = ['cash', 'mpesa', 'card', 'bank_transfer', 'other'];
+
 export const DashboardPage = () => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(0);
   const currency = useAppStore((state) => state.settings.currency);
   const pendingSync = useAppStore((state) => state.pendingSync);
   const sales = useLiveQuery(() => db.sales.orderBy('createdAt').reverse().toArray(), [], [] as Sale[]);
@@ -39,24 +43,33 @@ export const DashboardPage = () => {
     return acc;
   }, {});
 
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const update = () => setChartWidth(chartRef.current?.getBoundingClientRect().width ?? 0);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="space-y-4">
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
         <Metric icon={Banknote} label="Revenue today" value={money(revenue, currency)} />
         <Metric icon={Receipt} label="Sales today" value={todaySales.length.toString()} />
         <Metric icon={TrendingUp} label="Profit estimate" value={money(profit, currency)} />
         <Metric icon={RefreshCcw} label="Pending sync" value={pendingSync.toString()} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-bold">Sales chart</h2>
             <span className="text-xs text-slate-500">Since {new Date(startOfDayIso()).toLocaleDateString('en-KE')}</span>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+          <div ref={chartRef} className="h-64 min-w-0">
+            {chartWidth > 0 ? (
+              <AreaChart width={chartWidth} height={256} data={chartData}>
                 <defs>
                   <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0f766e" stopOpacity={0.4} />
@@ -69,14 +82,14 @@ export const DashboardPage = () => {
                 <Tooltip formatter={(value) => money(Number(value), currency)} />
                 <Area type="monotone" dataKey="revenue" stroke="#0f766e" strokeWidth={3} fill="url(#salesGradient)" />
               </AreaChart>
-            </ResponsiveContainer>
+            ) : null}
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <h2 className="mb-3 font-bold">Payment summary</h2>
           <div className="space-y-3">
-            {(['cash', 'mpesa', 'card'] as const).map((method) => (
+            {paymentMethods.map((method) => (
               <div key={method} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
                 <span className="inline-flex items-center gap-2 text-sm font-semibold">
                   <CreditCard size={17} className="text-teal-700" />
@@ -94,12 +107,12 @@ export const DashboardPage = () => {
           <h2 className="mb-3 font-bold">Recent transactions</h2>
           <div className="space-y-2">
             {sales.slice(0, 6).map((sale) => (
-              <div key={sale.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
-                <div>
+              <div key={sale.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold">{sale.receiptNumber}</p>
                   <p className="text-xs text-slate-500">{shortDateTime(sale.createdAt)} · {sale.cashierName}</p>
                 </div>
-                <strong>{money(sale.total, currency)}</strong>
+                <strong className="shrink-0 text-right">{money(sale.total, currency)}</strong>
               </div>
             ))}
             {sales.length === 0 ? <p className="py-6 text-center text-sm text-slate-500">No sales yet. Your first checkout will appear here.</p> : null}
@@ -127,11 +140,11 @@ export const DashboardPage = () => {
 };
 
 const Metric = ({ icon: Icon, label, value }: { icon: typeof ShoppingBag; label: string; value: string }) => (
-  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+  <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
     <div className="mb-3 grid h-11 w-11 place-items-center rounded-lg bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
       <Icon size={20} />
     </div>
     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-    <p className="mt-1 text-xl font-black">{value}</p>
+    <p className="mt-1 break-words text-xl font-black">{value}</p>
   </div>
 );

@@ -6,34 +6,34 @@ import { hashSecret, nowIso } from '../utils/security';
 const stamp = () => ({ createdAt: nowIso(), updatedAt: nowIso(), synced: false });
 
 const categorySeed = [
-  ['Staples', '#0f766e'],
-  ['Beverages', '#2563eb'],
-  ['Household', '#f97316'],
-  ['Snacks', '#7c3aed'],
-  ['Personal Care', '#db2777']
+  ['Analgesics', '#0f766e'],
+  ['Antibiotics', '#2563eb'],
+  ['Cough & Cold', '#f97316'],
+  ['Vitamins', '#7c3aed'],
+  ['First Aid', '#db2777']
 ] as const;
 
 const productSeed: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'synced' | 'active'>> = [
-  { name: 'Jogoo Maize Flour 2kg', categoryId: 'Staples', barcode: '6161100001012', buyingPrice: 145, sellingPrice: 185, stock: 36, lowStockThreshold: 8 },
-  { name: 'Pishori Rice 1kg', categoryId: 'Staples', barcode: '6161100001029', buyingPrice: 185, sellingPrice: 240, stock: 22, lowStockThreshold: 6 },
-  { name: 'Dola Wheat Flour 2kg', categoryId: 'Staples', barcode: '6161100001036', buyingPrice: 150, sellingPrice: 195, stock: 18, lowStockThreshold: 7 },
-  { name: 'Ushindi Cooking Oil 1L', categoryId: 'Staples', barcode: '6161100001043', buyingPrice: 245, sellingPrice: 320, stock: 14, lowStockThreshold: 5 },
-  { name: 'Mumias Sugar 1kg', categoryId: 'Staples', barcode: '6161100001050', buyingPrice: 135, sellingPrice: 175, stock: 30, lowStockThreshold: 10 },
-  { name: 'Brookside Milk 500ml', categoryId: 'Beverages', barcode: '6161100001067', buyingPrice: 55, sellingPrice: 70, stock: 44, lowStockThreshold: 12 },
-  { name: 'Ketepa Tea Leaves 250g', categoryId: 'Beverages', barcode: '6161100001074', buyingPrice: 155, sellingPrice: 210, stock: 20, lowStockThreshold: 5 },
-  { name: 'Minute Maid Mango 1L', categoryId: 'Beverages', barcode: '6161100001081', buyingPrice: 135, sellingPrice: 180, stock: 15, lowStockThreshold: 5 },
-  { name: 'Dasani Water 500ml', categoryId: 'Beverages', barcode: '6161100001098', buyingPrice: 28, sellingPrice: 50, stock: 60, lowStockThreshold: 20 },
-  { name: 'Soda 500ml Assorted', categoryId: 'Beverages', barcode: '6161100001104', buyingPrice: 55, sellingPrice: 80, stock: 48, lowStockThreshold: 15 },
-  { name: 'Ariel Detergent 500g', categoryId: 'Household', barcode: '6161100001111', buyingPrice: 190, sellingPrice: 260, stock: 16, lowStockThreshold: 4 },
-  { name: 'Sunlight Bar Soap 800g', categoryId: 'Household', barcode: '6161100001128', buyingPrice: 115, sellingPrice: 155, stock: 26, lowStockThreshold: 6 },
-  { name: 'Toilet Tissue 10 Pack', categoryId: 'Household', barcode: '6161100001135', buyingPrice: 310, sellingPrice: 420, stock: 9, lowStockThreshold: 4 },
-  { name: 'Royco Cubes 20 Pack', categoryId: 'Household', barcode: '6161100001142', buyingPrice: 70, sellingPrice: 100, stock: 34, lowStockThreshold: 10 },
-  { name: 'Blue Band 250g', categoryId: 'Staples', barcode: '6161100001159', buyingPrice: 105, sellingPrice: 145, stock: 20, lowStockThreshold: 6 },
-  { name: 'Tropical Heat Crisps', categoryId: 'Snacks', barcode: '6161100001166', buyingPrice: 45, sellingPrice: 70, stock: 40, lowStockThreshold: 12 },
-  { name: 'Britania Biscuits 100g', categoryId: 'Snacks', barcode: '6161100001173', buyingPrice: 35, sellingPrice: 55, stock: 38, lowStockThreshold: 10 },
-  { name: 'Cadbury Chocolate 80g', categoryId: 'Snacks', barcode: '6161100001180', buyingPrice: 95, sellingPrice: 140, stock: 12, lowStockThreshold: 5 },
-  { name: 'Colgate Toothpaste 140g', categoryId: 'Personal Care', barcode: '6161100001197', buyingPrice: 145, sellingPrice: 210, stock: 18, lowStockThreshold: 5 },
-  { name: 'Always Pads 8 Pack', categoryId: 'Personal Care', barcode: '6161100001203', buyingPrice: 115, sellingPrice: 170, stock: 21, lowStockThreshold: 6 }
+  { name: 'Paracetamol 500mg', packSize: 'strip of 10', categoryId: 'Analgesics', barcode: '6161100001012', buyingPrice: 18, sellingPrice: 30, stock: 120, lowStockThreshold: 30 },
+  { name: 'Ibuprofen 400mg', packSize: 'strip of 10', categoryId: 'Analgesics', barcode: '6161100001029', buyingPrice: 35, sellingPrice: 60, stock: 80, lowStockThreshold: 20 },
+  { name: 'Diclofenac Gel 30g', packSize: 'tube 30g', categoryId: 'Analgesics', barcode: '6161100001036', buyingPrice: 120, sellingPrice: 190, stock: 25, lowStockThreshold: 8 },
+  { name: 'Amoxicillin 500mg', packSize: 'capsule strip of 10', categoryId: 'Antibiotics', barcode: '6161100001043', buyingPrice: 110, sellingPrice: 180, stock: 45, lowStockThreshold: 12 },
+  { name: 'Azithromycin 500mg', packSize: 'pack of 3 tablets', categoryId: 'Antibiotics', barcode: '6161100001050', buyingPrice: 190, sellingPrice: 320, stock: 26, lowStockThreshold: 8 },
+  { name: 'Metronidazole 400mg', packSize: 'strip of 10', categoryId: 'Antibiotics', barcode: '6161100001067', buyingPrice: 45, sellingPrice: 80, stock: 65, lowStockThreshold: 18 },
+  { name: 'Cough Syrup Adult', packSize: 'bottle 100ml', categoryId: 'Cough & Cold', barcode: '6161100001074', buyingPrice: 95, sellingPrice: 160, stock: 32, lowStockThreshold: 10 },
+  { name: 'Children Cough Syrup', packSize: 'bottle 60ml', categoryId: 'Cough & Cold', barcode: '6161100001081', buyingPrice: 75, sellingPrice: 130, stock: 28, lowStockThreshold: 10 },
+  { name: 'Cetirizine 10mg', packSize: 'strip of 10', categoryId: 'Cough & Cold', barcode: '6161100001098', buyingPrice: 22, sellingPrice: 45, stock: 90, lowStockThreshold: 25 },
+  { name: 'Vitamin C 1000mg', packSize: 'tube of 20 tablets', categoryId: 'Vitamins', barcode: '6161100001104', buyingPrice: 180, sellingPrice: 280, stock: 20, lowStockThreshold: 6 },
+  { name: 'Multivitamin Capsules', packSize: 'bottle of 30', categoryId: 'Vitamins', barcode: '6161100001111', buyingPrice: 260, sellingPrice: 420, stock: 18, lowStockThreshold: 5 },
+  { name: 'Zinc Tablets 20mg', packSize: 'strip of 10', categoryId: 'Vitamins', barcode: '6161100001128', buyingPrice: 55, sellingPrice: 95, stock: 50, lowStockThreshold: 15 },
+  { name: 'Oral Rehydration Salts', packSize: 'sachet', categoryId: 'First Aid', barcode: '6161100001135', buyingPrice: 12, sellingPrice: 25, stock: 140, lowStockThreshold: 35 },
+  { name: 'Hydrogen Peroxide', packSize: 'bottle 100ml', categoryId: 'First Aid', barcode: '6161100001142', buyingPrice: 45, sellingPrice: 80, stock: 30, lowStockThreshold: 8 },
+  { name: 'Surgical Gloves', packSize: 'pair', categoryId: 'First Aid', barcode: '6161100001159', buyingPrice: 18, sellingPrice: 35, stock: 160, lowStockThreshold: 40 },
+  { name: 'Crepe Bandage', packSize: 'roll 4 inch', categoryId: 'First Aid', barcode: '6161100001166', buyingPrice: 60, sellingPrice: 110, stock: 35, lowStockThreshold: 10 },
+  { name: 'Antacid Suspension', packSize: 'bottle 200ml', categoryId: 'Cough & Cold', barcode: '6161100001173', buyingPrice: 150, sellingPrice: 240, stock: 22, lowStockThreshold: 6 },
+  { name: 'Omeprazole 20mg', packSize: 'strip of 14', categoryId: 'Analgesics', barcode: '6161100001180', buyingPrice: 75, sellingPrice: 130, stock: 48, lowStockThreshold: 12 },
+  { name: 'Clotrimazole Cream', packSize: 'tube 20g', categoryId: 'First Aid', barcode: '6161100001197', buyingPrice: 80, sellingPrice: 140, stock: 24, lowStockThreshold: 8 },
+  { name: 'Ferrous Sulphate', packSize: 'strip of 10', categoryId: 'Vitamins', barcode: '6161100001203', buyingPrice: 30, sellingPrice: 55, stock: 70, lowStockThreshold: 18 }
 ];
 
 export const defaultSettings = (): Settings => ({
@@ -44,6 +44,7 @@ export const defaultSettings = (): Settings => ({
   receiptFooter: 'Thank you for shopping with us.',
   theme: 'light',
   syncEnabled: true,
+  setupCompleted: false,
   autoLockMinutes: 10,
   receiptWidth: '58mm',
   businessPhone: '+254 700 000 000',

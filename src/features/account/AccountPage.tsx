@@ -1,13 +1,14 @@
 import { FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { KeyRound, Settings, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Boxes, KeyRound, LogOut, ReceiptText, Settings, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { db } from '../../db/db';
 import { hashSecret, nowIso, sanitizeText, verifySecret } from '../../utils/security';
 import { useAppStore } from '../../store/appStore';
 import { syncService } from '../../services/syncService';
 
 export const AccountPage = () => {
+  const navigate = useNavigate();
   const currentUser = useAppStore((state) => state.currentUser);
   const setUser = useAppStore((state) => state.setUser);
   const [username, setUsername] = useState(currentUser?.username ?? '');
@@ -109,6 +110,17 @@ export const AccountPage = () => {
         <h1 className="text-2xl font-black">Account</h1>
         <p className="text-sm text-slate-500">Manage your own login details on this device.</p>
       </div>
+      <button
+        type="button"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 font-semibold text-white dark:bg-white dark:text-slate-950 sm:w-auto"
+        onClick={() => {
+          setUser(null);
+          navigate('/login');
+        }}
+      >
+        <LogOut size={18} />
+        Log out
+      </button>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
@@ -152,6 +164,14 @@ export const AccountPage = () => {
                 <Link className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-100 px-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200" to="/users">
                   <Users size={18} />
                   Staff accounts
+                </Link>
+                <Link className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-100 px-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200" to="/inventory">
+                  <Boxes size={18} />
+                  Inventory
+                </Link>
+                <Link className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-100 px-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200" to="/receipts">
+                  <ReceiptText size={18} />
+                  Receipts
                 </Link>
                 <Link className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-100 px-3 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200" to="/settings">
                   <Settings size={18} />

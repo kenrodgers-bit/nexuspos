@@ -33,7 +33,7 @@ export const ReceiptPreview = ({ sale, items, settings }: { sale: Sale; items: S
       <Row label="Tax" value={money(sale.tax, settings.currency)} />
       <Row label="Total" value={money(sale.total, settings.currency)} strong />
       <Row label="Payment" value={paymentLabel(sale.paymentMethod)} />
-      {sale.mpesaReference ? <Row label="M-Pesa Ref" value={sale.mpesaReference} /> : null}
+      {sale.paymentReference || sale.mpesaReference ? <Row label="Reference" value={sale.paymentReference ?? sale.mpesaReference ?? ''} /> : null}
       <Row label="Received" value={money(sale.amountReceived, settings.currency)} />
       <Row label="Change" value={money(sale.changeDue, settings.currency)} />
     </div>

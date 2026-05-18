@@ -21,6 +21,7 @@ interface CartLine {
 
 const receiptNumber = () => `NP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 const transactionId = () => `TX-${Date.now()}-${uuid().slice(0, 8).toUpperCase()}`;
+const paymentMethods: PaymentMethod[] = ['cash', 'mpesa', 'card', 'bank_transfer', 'other'];
 
 export const POSPage = () => {
   const settings = useAppStore((state) => state.settings);
@@ -34,14 +35,14 @@ export const POSPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amountReceived, setAmountReceived] = useState('');
-  const [mpesaReference, setMpesaReference] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
   const [globalDiscount, setGlobalDiscount] = useState('0');
   const [lastReceipt, setLastReceipt] = useState<{ sale: Sale; items: SaleItem[] } | null>(null);
 
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
   const visibleProducts = products.filter((product) => {
     if (product.deleted || !product.active) return false;
-    const matchesText = `${product.name} ${product.barcode ?? ''}`.toLowerCase().includes(search.toLowerCase());
+    const matchesText = `${product.name} ${product.packSize ?? ''} ${product.barcode ?? ''}`.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryId === 'all' || product.categoryId === categoryId;
     return matchesText && matchesCategory;
   });
@@ -104,11 +105,6 @@ export const POSPage = () => {
       toast.error('Amount received is below total');
       return;
     }
-    if (paymentMethod === 'mpesa' && mpesaReference.trim().length < 4) {
-      toast.error('Enter M-Pesa reference');
-      return;
-    }
-
     const saleId = uuid();
     const createdAt = nowIso();
     const saleItems: SaleItem[] = cart.map((line) => {
@@ -118,7 +114,7 @@ export const POSPage = () => {
         id: uuid(),
         saleId,
         productId: line.product.id,
-        productName: line.product.name,
+        productName: line.product.packSize ? `${line.product.name} (${line.product.packSize})` : line.product.name,
         quantity: line.quantity,
         unitPrice: line.product.sellingPrice,
         buyingPrice: line.product.buyingPrice,
@@ -145,7 +141,8 @@ export const POSPage = () => {
       paymentMethod,
       amountReceived: received,
       changeDue: change,
-      mpesaReference: paymentMethod === 'mpesa' ? mpesaReference.trim() : undefined,
+      mpesaReference: paymentMethod === 'mpesa' ? paymentReference.trim() || undefined : undefined,
+      paymentReference: paymentMethod !== 'cash' ? paymentReference.trim() || undefined : undefined,
       status: 'completed',
       createdAt,
       updatedAt: createdAt,
@@ -180,10 +177,11 @@ export const POSPage = () => {
       });
       await syncService.queue('sales', sale.id, 'sale', { sale, items: saleItems });
       setLastReceipt({ sale, items: saleItems });
+      setDrawerOpen(false);
       setCart([]);
       setGlobalDiscount('0');
       setAmountReceived('');
-      setMpesaReference('');
+      setPaymentReference('');
       toast.success('Sale saved locally');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Checkout failed');
@@ -238,22 +236,23 @@ export const POSPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
             {visibleProducts.map((product) => (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => addProduct(product)}
-                className="min-h-36 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900"
+                className="min-h-36 min-w-0 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <span className="rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                  <span className="min-w-0 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">
                     {categoryMap.get(product.categoryId)?.name ?? 'Item'}
                   </span>
                   <span className={`text-xs font-bold ${product.stock <= product.lowStockThreshold ? 'text-amber-600' : 'text-slate-400'}`}>{product.stock} left</span>
                 </div>
-                <h3 className="line-clamp-2 min-h-10 font-bold">{product.name}</h3>
-                <p className="mt-2 text-lg font-black text-teal-700">{money(product.sellingPrice, settings.currency)}</p>
+                <h3 className="line-clamp-2 min-h-10 break-words font-bold">{product.name}</h3>
+                {product.packSize ? <p className="mt-1 text-xs font-semibold text-slate-500">{product.packSize}</p> : null}
+                <p className="mt-2 break-words text-lg font-black text-teal-700">{money(product.sellingPrice, settings.currency)}</p>
               </button>
             ))}
           </div>
@@ -273,8 +272,8 @@ export const POSPage = () => {
           setGlobalDiscount={setGlobalDiscount}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
-          mpesaReference={mpesaReference}
-          setMpesaReference={setMpesaReference}
+          paymentReference={paymentReference}
+          setPaymentReference={setPaymentReference}
           currency={settings.currency}
           updateQuantity={updateQuantity}
           setCart={setCart}
@@ -294,7 +293,7 @@ export const POSPage = () => {
 
       <Modal open={drawerOpen} title="Cart" onClose={() => setDrawerOpen(false)}>
         <CartPanel
-          containerClassName="block max-h-[72vh] overflow-y-auto"
+          containerClassName="block"
           cart={cart}
           subtotal={subtotal}
           discount={discount}
@@ -307,8 +306,8 @@ export const POSPage = () => {
           setGlobalDiscount={setGlobalDiscount}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
-          mpesaReference={mpesaReference}
-          setMpesaReference={setMpesaReference}
+          paymentReference={paymentReference}
+          setPaymentReference={setPaymentReference}
           currency={settings.currency}
           updateQuantity={updateQuantity}
           setCart={setCart}
@@ -356,8 +355,8 @@ interface CartPanelProps {
   setGlobalDiscount: (value: string) => void;
   paymentMethod: PaymentMethod;
   setPaymentMethod: (value: PaymentMethod) => void;
-  mpesaReference: string;
-  setMpesaReference: (value: string) => void;
+  paymentReference: string;
+  setPaymentReference: (value: string) => void;
   currency: string;
   updateQuantity: (productId: string, next: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartLine[]>>;
@@ -379,8 +378,8 @@ const CartPanel = ({
   setGlobalDiscount,
   paymentMethod,
   setPaymentMethod,
-  mpesaReference,
-  setMpesaReference,
+  paymentReference,
+  setPaymentReference,
   currency,
   updateQuantity,
   setCart,
@@ -397,7 +396,9 @@ const CartPanel = ({
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-bold">{line.product.name}</p>
-              <p className="text-xs text-slate-500">{money(line.product.sellingPrice, currency)} each</p>
+              <p className="text-xs text-slate-500">
+                {[line.product.packSize, `${money(line.product.sellingPrice, currency)} each`].filter(Boolean).join(' · ')}
+              </p>
             </div>
             <button
               type="button"
@@ -437,8 +438,8 @@ const CartPanel = ({
         Discount
         <input className="mt-1 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" type="number" value={globalDiscount} onChange={(event) => setGlobalDiscount(event.target.value)} />
       </label>
-      <div className="grid grid-cols-3 gap-2">
-        {(['cash', 'mpesa', 'card'] as const).map((method) => (
+      <div className="grid grid-cols-2 gap-2">
+        {paymentMethods.map((method) => (
           <button
             key={method}
             type="button"
@@ -455,10 +456,10 @@ const CartPanel = ({
           <input className="mt-1 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" type="number" value={amountReceived} onChange={(event) => setAmountReceived(event.target.value)} />
         </label>
       ) : null}
-      {paymentMethod === 'mpesa' ? (
+      {paymentMethod !== 'cash' ? (
         <label className="block text-sm font-semibold">
-          M-Pesa reference
-          <input className="mt-1 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={mpesaReference} onChange={(event) => setMpesaReference(event.target.value)} />
+          Reference note
+          <input className="mt-1 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} />
         </label>
       ) : null}
       <div className="rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-950">
@@ -471,7 +472,7 @@ const CartPanel = ({
           <span>{money(total, currency)}</span>
         </div>
       </div>
-      <div className="sticky bottom-0 z-50 -mx-3 -mb-3 bg-white p-3 dark:bg-slate-900">
+      <div className="bg-white pt-3 dark:bg-slate-900 md:sticky md:bottom-0 md:z-50 md:-mx-3 md:-mb-3 md:p-3">
         <button
           type="button"
           onClick={() => void checkout()}

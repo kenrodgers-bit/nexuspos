@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { initializeDatabase, getSettings } from './db/seed';
@@ -24,6 +24,12 @@ const ShellRoute = ({ children }: { children: React.ReactNode }) => (
     <AppShell>{children}</AppShell>
   </ProtectedRoute>
 );
+
+const RoleHome = () => {
+  const user = useAppStore((state) => state.currentUser);
+  if (user?.role === 'cashier') return <Navigate to="/pos" replace />;
+  return <DashboardPage />;
+};
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -71,16 +77,16 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ShellRoute><DashboardPage /></ShellRoute>} />
+        <Route path="/" element={<ShellRoute><RoleHome /></ShellRoute>} />
         <Route path="/pos" element={<ShellRoute><POSPage /></ShellRoute>} />
-        <Route path="/products" element={<ShellRoute><ProductsPage /></ShellRoute>} />
-        <Route path="/inventory" element={<ShellRoute><InventoryPage /></ShellRoute>} />
-        <Route path="/reports" element={<ShellRoute><ReportsPage /></ShellRoute>} />
+        <Route path="/products" element={<ShellRoute><ProtectedRoute role="admin"><ProductsPage /></ProtectedRoute></ShellRoute>} />
+        <Route path="/inventory" element={<ShellRoute><ProtectedRoute role="admin"><InventoryPage /></ProtectedRoute></ShellRoute>} />
+        <Route path="/reports" element={<ShellRoute><ProtectedRoute role="admin"><ReportsPage /></ProtectedRoute></ShellRoute>} />
         <Route path="/receipts" element={<ShellRoute><ReceiptsPage /></ShellRoute>} />
         <Route path="/account" element={<ShellRoute><AccountPage /></ShellRoute>} />
         <Route path="/settings" element={<ShellRoute><ProtectedRoute role="admin"><SettingsPage /></ProtectedRoute></ShellRoute>} />
         <Route path="/users" element={<ShellRoute><ProtectedRoute role="admin"><UsersPage /></ProtectedRoute></ShellRoute>} />
-        <Route path="*" element={<ShellRoute><DashboardPage /></ShellRoute>} />
+        <Route path="*" element={<ShellRoute><RoleHome /></ShellRoute>} />
       </Routes>
       <UpdatePrompt />
     </>

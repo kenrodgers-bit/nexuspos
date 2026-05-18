@@ -21,7 +21,7 @@ export const SettingsPage = () => {
   });
 
   const save = form.handleSubmit(async (input) => {
-    const next = { ...settings, ...input, updatedAt: nowIso(), synced: false };
+    const next = { ...settings, ...input, setupCompleted: true, updatedAt: nowIso(), synced: false };
     await db.settings.put(next);
     setSettings(next);
     await syncService.queue('settings', 'default', 'update', next);

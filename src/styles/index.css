@@ -13,10 +13,18 @@
   color-scheme: dark;
 }
 
+html,
+#root {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
+  width: 100%;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(20, 184, 166, 0.13), transparent 34rem),
     linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
@@ -42,6 +50,7 @@ textarea {
 
 .receipt-paper {
   width: 80mm;
+  max-width: 100%;
   margin: 0 auto;
   background: #fff;
   color: #111827;

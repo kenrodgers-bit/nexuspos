@@ -24,7 +24,7 @@ export const ProductsPage = () => {
   const [open, setOpen] = useState(false);
   const form = useForm<ProductFormInput>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: { name: '', categoryId: '', barcode: '', buyingPrice: 0, sellingPrice: 0, stock: 0, lowStockThreshold: 5, image: '' }
+    defaultValues: { name: '', packSize: '', categoryId: '', barcode: '', buyingPrice: 0, sellingPrice: 0, stock: 0, lowStockThreshold: 5, image: '' }
   });
 
   useEffect(() => {
@@ -33,6 +33,7 @@ export const ProductsPage = () => {
       editing
         ? {
             name: editing.name,
+            packSize: editing.packSize ?? '',
             categoryId: editing.categoryId,
             barcode: editing.barcode ?? '',
             buyingPrice: editing.buyingPrice,
@@ -41,18 +42,26 @@ export const ProductsPage = () => {
             lowStockThreshold: editing.lowStockThreshold,
             image: editing.image ?? ''
           }
-        : { name: '', categoryId: categories[0]?.id ?? '', barcode: '', buyingPrice: 0, sellingPrice: 0, stock: 0, lowStockThreshold: 5, image: '' }
+        : { name: '', packSize: '', categoryId: categories[0]?.id ?? '', barcode: '', buyingPrice: 0, sellingPrice: 0, stock: 0, lowStockThreshold: 5, image: '' }
     );
   }, [categories, editing, form, open]);
 
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
   const visibleProducts = products.filter((product) => {
-    const text = `${product.name} ${product.barcode ?? ''}`.toLowerCase();
+    const text = `${product.name} ${product.packSize ?? ''} ${product.barcode ?? ''}`.toLowerCase();
     return !product.deleted && text.includes(search.toLowerCase()) && (categoryId === 'all' || product.categoryId === categoryId);
   });
 
   const saveProduct = form.handleSubmit(async (input) => {
-    const data = { ...input, name: sanitizeText(input.name), barcode: input.barcode ? sanitizeText(input.barcode) : undefined, updatedAt: nowIso(), synced: false, active: true };
+    const data = {
+      ...input,
+      name: sanitizeText(input.name),
+      packSize: input.packSize ? sanitizeText(input.packSize) : undefined,
+      barcode: input.barcode ? sanitizeText(input.barcode) : undefined,
+      updatedAt: nowIso(),
+      synced: false,
+      active: true
+    };
     if (editing) {
       await db.products.update(editing.id, data);
       await syncService.queue('products', editing.id, 'update', { id: editing.id, ...data });
@@ -112,7 +121,7 @@ export const ProductsPage = () => {
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-bold">{product.name}</h2>
-                <p className="text-xs text-slate-500">{categoryMap.get(product.categoryId)} · {product.barcode || 'No barcode'}</p>
+                <p className="text-xs text-slate-500">{[categoryMap.get(product.categoryId), product.packSize, product.barcode || 'No barcode'].filter(Boolean).join(' · ')}</p>
               </div>
               <span className={`rounded-lg px-2 py-1 text-xs font-bold ${product.active ? 'bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
                 {product.active ? 'Active' : 'Disabled'}
@@ -146,6 +155,7 @@ export const ProductsPage = () => {
       <Modal open={open} title={editing ? 'Edit product' : 'Add product'} onClose={() => setOpen(false)}>
         <form className="space-y-3" onSubmit={saveProduct}>
           <Input label="Product name" error={form.formState.errors.name?.message} {...form.register('name')} />
+          <Input label="Pack size" placeholder="strip of 10, bottle 100ml" error={form.formState.errors.packSize?.message} {...form.register('packSize')} />
           <label className="block text-sm font-semibold">
             Category
             <select className="mt-1 min-h-12 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" {...form.register('categoryId')}>

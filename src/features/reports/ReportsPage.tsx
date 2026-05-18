@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, TrendingUp } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../../db/db';
 import type { Sale, SaleItem } from '../../db/schema';
 import { useLiveQuery } from '../../hooks/useLiveQuery';
@@ -14,6 +14,8 @@ const daysBack = (days: number) => {
 };
 
 export const ReportsPage = () => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(0);
   const currency = useAppStore((state) => state.settings.currency);
   const sales = useLiveQuery(() => db.sales.toArray(), [], [] as Sale[]);
   const items = useLiveQuery(() => db.sale_items.toArray(), [], [] as SaleItem[]);
@@ -82,6 +84,15 @@ export const ReportsPage = () => {
     downloadFile('nexus-pos-sales.csv', rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv');
   };
 
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const update = () => setChartWidth(chartRef.current?.getBoundingClientRect().width ?? 0);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -95,28 +106,28 @@ export const ReportsPage = () => {
         </button>
       </div>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
         <ReportMetric label="Daily sales" value={money(stats.daily, currency)} />
         <ReportMetric label="Weekly sales" value={money(stats.weekly, currency)} />
         <ReportMetric label="Monthly sales" value={money(stats.monthly, currency)} />
         <ReportMetric label="Profit report" value={money(stats.profit, currency)} />
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+      <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-3 flex items-center gap-2">
           <TrendingUp className="text-teal-700" />
           <h2 className="font-bold">Revenue by day</h2>
         </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+        <div ref={chartRef} className="h-64 min-w-0">
+          {chartWidth > 0 ? (
+            <BarChart width={chartWidth} height={256} data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="label" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} width={54} />
               <Tooltip formatter={(value) => money(Number(value), currency)} />
               <Bar dataKey="revenue" fill="#0f766e" radius={[8, 8, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          ) : null}
         </div>
       </section>
 
@@ -141,9 +152,9 @@ const groupSales = (sales: Sale[], key: (sale: Sale) => string) => {
 };
 
 const ReportMetric = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+  <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-    <p className="mt-2 text-lg font-black">{value}</p>
+    <p className="mt-2 break-words text-lg font-black">{value}</p>
   </div>
 );
 
@@ -153,8 +164,8 @@ const ReportList = ({ title, rows }: { title: string; rows: string[][] }) => (
     <div className="space-y-2">
       {rows.map(([label, value]) => (
         <div key={label} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-950">
-          <span className="font-semibold">{label}</span>
-          <span className="text-slate-500">{value}</span>
+          <span className="min-w-0 break-words font-semibold">{label}</span>
+          <span className="shrink-0 text-right text-slate-500">{value}</span>
         </div>
       ))}
       {rows.length === 0 ? <p className="text-sm text-slate-500">No data yet.</p> : null}

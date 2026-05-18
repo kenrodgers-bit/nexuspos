@@ -26,6 +26,7 @@ export const startOfDayIso = (date = new Date()) => {
 
 export const paymentLabel = (method: PaymentMethod) => {
   if (method === 'mpesa') return 'M-Pesa';
+  if (method === 'bank_transfer') return 'Bank Transfer';
   return method[0].toUpperCase() + method.slice(1);
 };
 

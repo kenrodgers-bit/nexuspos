@@ -113,7 +113,7 @@ export const UsersPage = () => {
         {users.map((user) => (
           <article key={user.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-bold">{user.name}</h2>
                 <p className="text-xs text-slate-500">{user.role} · {user.username ?? 'PIN login'}</p>
               </div>

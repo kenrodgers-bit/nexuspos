@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export type Role = 'admin' | 'cashier';
 export type ThemeMode = 'light' | 'dark';
-export type PaymentMethod = 'cash' | 'mpesa' | 'card';
+export type PaymentMethod = 'cash' | 'mpesa' | 'card' | 'bank_transfer' | 'other';
 export type SyncAction = 'create' | 'update' | 'delete' | 'sale' | 'inventory';
 
 export interface BaseRecord {
@@ -30,6 +30,7 @@ export interface Category extends BaseRecord {
 
 export interface Product extends BaseRecord {
   name: string;
+  packSize?: string;
   categoryId: string;
   barcode?: string;
   buyingPrice: number;
@@ -54,7 +55,14 @@ export interface Sale extends BaseRecord {
   amountReceived: number;
   changeDue: number;
   mpesaReference?: string;
+  paymentReference?: string;
   status: 'completed' | 'voided';
+  voidRequestStatus?: 'pending' | 'approved' | 'rejected';
+  voidReason?: string;
+  voidRequestedAt?: string;
+  voidReviewedAt?: string;
+  voidReviewedBy?: string;
+  voidReviewNote?: string;
 }
 
 export interface SaleItem extends BaseRecord {
@@ -103,6 +111,7 @@ export interface Settings extends BaseRecord {
   receiptFooter: string;
   theme: ThemeMode;
   syncEnabled: boolean;
+  setupCompleted?: boolean;
   lastSyncedAt?: string;
   autoLockMinutes: number;
   receiptWidth: '58mm' | '80mm';
@@ -122,6 +131,7 @@ export interface SyncQueueItem extends BaseRecord {
 
 export const productFormSchema = z.object({
   name: z.string().trim().min(2, 'Product name is required').max(80),
+  packSize: z.string().trim().max(40).optional(),
   categoryId: z.string().min(1, 'Choose a category'),
   barcode: z.string().trim().max(64).optional(),
   buyingPrice: z.number().min(0),
