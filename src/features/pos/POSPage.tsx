@@ -9,7 +9,7 @@ import { ReceiptPreview } from '../receipts/ReceiptPreview';
 import { useAppStore } from '../../store/appStore';
 import { useLiveQuery } from '../../hooks/useLiveQuery';
 import { money, paymentLabel } from '../../utils/format';
-import { nowIso } from '../../utils/security';
+import { nowIso, sanitizeText } from '../../utils/security';
 import { syncService } from '../../services/syncService';
 import { buildReceiptText, printReceipt, shareReceipt } from '../../services/receiptService';
 
@@ -22,6 +22,16 @@ interface CartLine {
 const receiptNumber = () => `NP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 const transactionId = () => `TX-${Date.now()}-${uuid().slice(0, 8).toUpperCase()}`;
 const paymentMethods: PaymentMethod[] = ['cash', 'mpesa', 'card', 'bank_transfer', 'other'];
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const isExpired = (expiryDate?: string) => Boolean(expiryDate && expiryDate < todayKey());
+const receiptProductName = (product: Product) => {
+  const name = product.name.toLowerCase();
+  const packSize = product.packSize?.toLowerCase() ?? '';
+  const strength = product.strength && !name.includes(product.strength.toLowerCase()) ? product.strength : undefined;
+  const dosageForm = product.dosageForm && !packSize.includes(product.dosageForm.toLowerCase()) ? product.dosageForm : undefined;
+  const details = [strength, dosageForm, product.packSize].filter(Boolean).join(' ');
+  return details ? `${product.name} (${details})` : product.name;
+};
 
 export const POSPage = () => {
   const settings = useAppStore((state) => state.settings);
@@ -36,13 +46,27 @@ export const POSPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [prescriptionReference, setPrescriptionReference] = useState('');
   const [globalDiscount, setGlobalDiscount] = useState('0');
   const [lastReceipt, setLastReceipt] = useState<{ sale: Sale; items: SaleItem[] } | null>(null);
 
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
   const visibleProducts = products.filter((product) => {
     if (product.deleted || !product.active) return false;
-    const matchesText = `${product.name} ${product.packSize ?? ''} ${product.barcode ?? ''}`.toLowerCase().includes(search.toLowerCase());
+    const matchesText = [
+      product.name,
+      product.genericName,
+      product.strength,
+      product.dosageForm,
+      product.packSize,
+      product.barcode,
+      product.batchNumber
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(search.toLowerCase());
     const matchesCategory = categoryId === 'all' || product.categoryId === categoryId;
     return matchesText && matchesCategory;
   });
@@ -55,8 +79,13 @@ export const POSPage = () => {
   const total = Math.max(0, taxable + tax);
   const received = paymentMethod === 'cash' ? Number(amountReceived || 0) : total;
   const change = Math.max(0, received - total);
+  const requiresPrescription = cart.some((line) => line.product.requiresPrescription);
 
   const addProduct = (product: Product) => {
+    if (isExpired(product.expiryDate)) {
+      toast.error(`${product.name} is expired`);
+      return;
+    }
     setCart((lines) => {
       const current = lines.find((line) => line.product.id === product.id);
       if (current && current.quantity >= product.stock) {
@@ -104,6 +133,11 @@ export const POSPage = () => {
       toast.error('Amount received is below total');
       return;
     }
+    if (requiresPrescription && prescriptionReference.trim().length < 3) {
+      toast.error('Prescription reference is required for Rx items');
+      return;
+    }
+    toast.dismiss();
     const saleId = uuid();
     const createdAt = nowIso();
     const saleItems: SaleItem[] = cart.map((line) => {
@@ -113,7 +147,7 @@ export const POSPage = () => {
         id: uuid(),
         saleId,
         productId: line.product.id,
-        productName: line.product.packSize ? `${line.product.name} (${line.product.packSize})` : line.product.name,
+        productName: receiptProductName(line.product),
         quantity: line.quantity,
         unitPrice: line.product.sellingPrice,
         buyingPrice: line.product.buyingPrice,
@@ -142,6 +176,8 @@ export const POSPage = () => {
       changeDue: change,
       mpesaReference: paymentMethod === 'mpesa' ? paymentReference.trim() || undefined : undefined,
       paymentReference: paymentMethod !== 'cash' ? paymentReference.trim() || undefined : undefined,
+      patientName: patientName ? sanitizeText(patientName) : undefined,
+      prescriptionReference: requiresPrescription ? sanitizeText(prescriptionReference) : undefined,
       status: 'completed',
       createdAt,
       updatedAt: createdAt,
@@ -154,6 +190,7 @@ export const POSPage = () => {
         for (const line of cart) {
           const fresh = await db.products.get(line.product.id);
           if (!fresh || fresh.stock < line.quantity) throw new Error(`${line.product.name} has insufficient stock`);
+          if (isExpired(fresh.expiryDate)) throw new Error(`${line.product.name} is expired`);
           await db.products.update(fresh.id, { stock: fresh.stock - line.quantity, updatedAt: nowIso(), synced: false });
           await db.inventory_logs.add({
             id: uuid(),
@@ -181,6 +218,8 @@ export const POSPage = () => {
       setGlobalDiscount('0');
       setAmountReceived('');
       setPaymentReference('');
+      setPatientName('');
+      setPrescriptionReference('');
       toast.success('Sale saved locally');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Checkout failed');
@@ -236,24 +275,32 @@ export const POSPage = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
-            {visibleProducts.map((product) => (
+            {visibleProducts.map((product) => {
+              const drugDetails = [product.genericName, product.strength, product.dosageForm, product.packSize].filter(Boolean).join(' | ');
+              const expired = isExpired(product.expiryDate);
+              return (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => addProduct(product)}
-                className="min-h-36 min-w-0 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900"
+                className={`min-h-40 min-w-0 rounded-lg border bg-white p-3 text-left shadow-sm transition active:scale-[0.98] dark:bg-slate-900 ${expired ? 'border-rose-200 opacity-80 dark:border-rose-900' : 'border-slate-200 dark:border-slate-800'}`}
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <span className="min-w-0 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">
-                    {categoryMap.get(product.categoryId)?.name ?? 'Item'}
-                  </span>
+                  <div className="flex min-w-0 flex-wrap gap-1">
+                    <span className="min-w-0 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                      {categoryMap.get(product.categoryId)?.name ?? 'Item'}
+                    </span>
+                    {product.requiresPrescription ? <span className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-800 dark:bg-amber-950 dark:text-amber-100">Rx</span> : null}
+                  </div>
                   <span className={`text-xs font-bold ${product.stock <= product.lowStockThreshold ? 'text-amber-600' : 'text-slate-400'}`}>{product.stock} left</span>
                 </div>
                 <h3 className="line-clamp-2 min-h-10 break-words font-bold">{product.name}</h3>
-                {product.packSize ? <p className="mt-1 text-xs font-semibold text-slate-500">{product.packSize}</p> : null}
+                {drugDetails ? <p className="mt-1 line-clamp-2 text-xs font-semibold text-slate-500">{drugDetails}</p> : null}
+                {product.expiryDate ? <p className={`mt-1 text-[11px] font-bold ${expired ? 'text-rose-600' : 'text-slate-400'}`}>Exp {product.expiryDate}</p> : null}
                 <p className="mt-2 break-words text-lg font-black text-teal-700">{money(product.sellingPrice, settings.currency)}</p>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -273,6 +320,11 @@ export const POSPage = () => {
           setPaymentMethod={setPaymentMethod}
           paymentReference={paymentReference}
           setPaymentReference={setPaymentReference}
+          patientName={patientName}
+          setPatientName={setPatientName}
+          prescriptionReference={prescriptionReference}
+          setPrescriptionReference={setPrescriptionReference}
+          requiresPrescription={requiresPrescription}
           currency={settings.currency}
           updateQuantity={updateQuantity}
           setCart={setCart}
@@ -307,6 +359,11 @@ export const POSPage = () => {
           setPaymentMethod={setPaymentMethod}
           paymentReference={paymentReference}
           setPaymentReference={setPaymentReference}
+          patientName={patientName}
+          setPatientName={setPatientName}
+          prescriptionReference={prescriptionReference}
+          setPrescriptionReference={setPrescriptionReference}
+          requiresPrescription={requiresPrescription}
           currency={settings.currency}
           updateQuantity={updateQuantity}
           setCart={setCart}
@@ -356,6 +413,11 @@ interface CartPanelProps {
   setPaymentMethod: (value: PaymentMethod) => void;
   paymentReference: string;
   setPaymentReference: (value: string) => void;
+  patientName: string;
+  setPatientName: (value: string) => void;
+  prescriptionReference: string;
+  setPrescriptionReference: (value: string) => void;
+  requiresPrescription: boolean;
   currency: string;
   updateQuantity: (productId: string, next: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartLine[]>>;
@@ -379,6 +441,11 @@ const CartPanel = ({
   setPaymentMethod,
   paymentReference,
   setPaymentReference,
+  patientName,
+  setPatientName,
+  prescriptionReference,
+  setPrescriptionReference,
+  requiresPrescription,
   currency,
   updateQuantity,
   setCart,
@@ -394,9 +461,12 @@ const CartPanel = ({
         <div key={line.product.id} className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-bold">{line.product.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold">{line.product.name}</p>
+                {line.product.requiresPrescription ? <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-800 dark:bg-amber-950 dark:text-amber-100">Rx</span> : null}
+              </div>
               <p className="text-xs text-slate-500">
-                {[line.product.packSize, `${money(line.product.sellingPrice, currency)} each`].filter(Boolean).join(' · ')}
+                {[line.product.strength, line.product.dosageForm, line.product.packSize, `${money(line.product.sellingPrice, currency)} each`].filter(Boolean).join(' | ')}
               </p>
             </div>
             <button
@@ -460,6 +530,19 @@ const CartPanel = ({
           Reference note
           <input className="mt-1 min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} />
         </label>
+      ) : null}
+      {requiresPrescription ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+          <p className="text-sm font-black text-amber-900 dark:text-amber-100">Prescription details required</p>
+          <label className="mt-2 block text-sm font-semibold">
+            Patient name (optional)
+            <input className="mt-1 min-h-11 w-full rounded-lg border border-amber-200 bg-white px-3 dark:border-amber-900 dark:bg-slate-950" value={patientName} onChange={(event) => setPatientName(event.target.value)} />
+          </label>
+          <label className="mt-2 block text-sm font-semibold">
+            Prescription / Rx reference
+            <input className="mt-1 min-h-11 w-full rounded-lg border border-amber-200 bg-white px-3 dark:border-amber-900 dark:bg-slate-950" value={prescriptionReference} onChange={(event) => setPrescriptionReference(event.target.value)} />
+          </label>
+        </div>
       ) : null}
       <div className="rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-950">
         <SummaryRow label="Subtotal" value={money(subtotal, currency)} />

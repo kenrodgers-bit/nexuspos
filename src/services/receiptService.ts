@@ -25,6 +25,8 @@ export const buildReceiptText = (sale: Sale, items: SaleItem[], settings: Settin
     `Total: ${money(sale.total, settings.currency)}`,
     `Paid: ${paymentLabel(sale.paymentMethod)}`,
     sale.paymentReference || sale.mpesaReference ? `Reference: ${sale.paymentReference ?? sale.mpesaReference}` : undefined,
+    sale.patientName ? `Patient: ${sale.patientName}` : undefined,
+    sale.prescriptionReference ? `Rx ref: ${sale.prescriptionReference}` : undefined,
     `Received: ${money(sale.amountReceived, settings.currency)}`,
     `Change: ${money(sale.changeDue, settings.currency)}`,
     line,

@@ -7,10 +7,12 @@ Nexus POS is a mobile-first, installable Progressive Web App for offline retail 
 - Offline login for admin password and cashier PIN users
 - Local IndexedDB storage with Dexie.js
 - Product, inventory, sales, receipts, reports, settings, users, backup, and restore workflows
-- POS terminal with search, barcode entry, category filters, cart drawer, discounts, tax, cash/M-Pesa/card payments, change calculation, and receipt generation
+- Chemist-ready product records with generic name, strength, dosage form, batch number, expiry date, and prescription-required flags
+- POS terminal with search, barcode entry, category filters, cart drawer, discounts, tax, cash/M-Pesa/card payments, change calculation, prescription reference capture, and receipt generation
 - Sync queue with online/offline detection, retry logic, pending sync badge, and backend-ready adapter interface
 - Self-service account page for admins to update passwords and cashiers to update PINs
 - Admin staff management for creating accounts, assigning roles, and deactivating staff away from work
+- Admin stock reset from Settings with inventory adjustment logs and sync queue entries
 - 58mm and 80mm thermal receipt layouts, browser print, plain text fallback, and Web Share API support
 - PWA manifest, Workbox service worker, app shell precaching, offline fallback page, Android icons, install prompt, and update prompt
 - Dark/light mode and mobile bottom navigation

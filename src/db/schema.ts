@@ -30,9 +30,15 @@ export interface Category extends BaseRecord {
 
 export interface Product extends BaseRecord {
   name: string;
+  genericName?: string;
+  strength?: string;
+  dosageForm?: string;
   packSize?: string;
   categoryId: string;
   barcode?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  requiresPrescription?: boolean;
   buyingPrice: number;
   sellingPrice: number;
   stock: number;
@@ -56,6 +62,8 @@ export interface Sale extends BaseRecord {
   changeDue: number;
   mpesaReference?: string;
   paymentReference?: string;
+  prescriptionReference?: string;
+  patientName?: string;
   status: 'completed' | 'voided';
   voidRequestStatus?: 'pending' | 'approved' | 'rejected';
   voidReason?: string;
@@ -131,9 +139,15 @@ export interface SyncQueueItem extends BaseRecord {
 
 export const productFormSchema = z.object({
   name: z.string().trim().min(2, 'Product name is required').max(80),
+  genericName: z.string().trim().max(80).optional(),
+  strength: z.string().trim().max(40).optional(),
+  dosageForm: z.string().trim().max(40).optional(),
   packSize: z.string().trim().max(40).optional(),
   categoryId: z.string().min(1, 'Choose a category'),
   barcode: z.string().trim().max(64).optional(),
+  batchNumber: z.string().trim().max(50).optional(),
+  expiryDate: z.string().trim().max(10).optional(),
+  requiresPrescription: z.boolean(),
   buyingPrice: z.number().min(0),
   sellingPrice: z.number().min(0.01),
   stock: z.number().int().min(0),

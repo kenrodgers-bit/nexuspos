@@ -1,10 +1,11 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
-import { Download, Upload } from 'lucide-react';
+import { Download, RotateCcw, Upload } from 'lucide-react';
+import { v4 as uuid } from 'uuid';
 import { db } from '../../db/db';
-import type { SettingsFormInput } from '../../db/schema';
+import type { InventoryLog, SettingsFormInput } from '../../db/schema';
 import { settingsFormSchema } from '../../db/schema';
 import { InstallPrompt } from '../../components/InstallPrompt';
 import { exportBackup, parseBackupFile, restoreBackup } from '../../services/backupService';
@@ -16,7 +17,10 @@ import { logoSrc } from '../../utils/brand';
 export const SettingsPage = () => {
   const settings = useAppStore((state) => state.settings);
   const setSettings = useAppStore((state) => state.setSettings);
+  const currentUser = useAppStore((state) => state.currentUser);
   const appLogo = logoSrc(settings.logo);
+  const [resetStockValue, setResetStockValue] = useState('0');
+  const [resetPhrase, setResetPhrase] = useState('');
   const form = useForm<SettingsFormInput>({
     resolver: zodResolver(settingsFormSchema),
     values: settings
@@ -53,6 +57,65 @@ export const SettingsPage = () => {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Restore failed');
     }
+  };
+
+  const resetStock = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      toast.error('Only admins can reset stock');
+      return;
+    }
+    const nextStock = Number(resetStockValue);
+    if (!Number.isInteger(nextStock) || nextStock < 0) {
+      toast.error('Enter a whole stock number of 0 or higher');
+      return;
+    }
+    if (resetPhrase !== 'RESET STOCK') {
+      toast.error('Type RESET STOCK to confirm');
+      return;
+    }
+
+    const products = await db.products.filter((product) => product.active && !product.deleted).toArray();
+    const changedProducts = products.filter((product) => product.stock !== nextStock);
+    if (changedProducts.length === 0) {
+      toast.success('All active products already match that stock count');
+      setResetPhrase('');
+      return;
+    }
+
+    const now = nowIso();
+    const logs: InventoryLog[] = changedProducts.map((product) => ({
+      id: uuid(),
+      productId: product.id,
+      productName: product.name,
+      type: 'adjustment',
+      quantityChange: nextStock - product.stock,
+      previousStock: product.stock,
+      newStock: nextStock,
+      note: `Admin stock reset to ${nextStock}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      createdAt: now,
+      updatedAt: now,
+      synced: false,
+      deleted: false
+    }));
+
+    await db.transaction('rw', db.products, db.inventory_logs, async () => {
+      for (const product of changedProducts) {
+        await db.products.update(product.id, { stock: nextStock, updatedAt: now, synced: false });
+      }
+      await db.inventory_logs.bulkAdd(logs);
+    });
+
+    await Promise.all([
+      ...changedProducts.map((product) =>
+        syncService.queue('products', product.id, 'update', { id: product.id, stock: nextStock, updatedAt: now })
+      ),
+      ...logs.map((log) => syncService.queue('inventory_logs', log.id, 'inventory', log))
+    ]);
+
+    setResetPhrase('');
+    toast.success(`Stock reset for ${changedProducts.length} products`);
   };
 
   return (
@@ -122,6 +185,23 @@ export const SettingsPage = () => {
                 Restore JSON
                 <input type="file" accept="application/json" className="hidden" onChange={(event) => void restore(event)} />
               </label>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-rose-200 bg-white p-4 shadow-soft dark:border-rose-900 dark:bg-slate-900">
+            <h2 className="font-bold">Stock reset</h2>
+            <p className="mt-1 text-sm text-slate-500">Reset every active product to one stock count after a full physical count.</p>
+            <div className="mt-3 grid gap-3">
+              <Input label="Set all active products to" type="number" min="0" step="1" value={resetStockValue} onChange={(event) => setResetStockValue(event.target.value)} />
+              <Input label="Type RESET STOCK to confirm" value={resetPhrase} onChange={(event) => setResetPhrase(event.target.value)} />
+              <button
+                type="button"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-rose-700 font-semibold text-white"
+                onClick={() => void resetStock()}
+              >
+                <RotateCcw size={18} />
+                Reset stock counts
+              </button>
             </div>
           </div>
 
