@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { db } from './db';
 import type { Category, Product, Settings, Supplier, User } from './schema';
 import { hashSecret, nowIso } from '../utils/security';
+import { DEFAULT_LOGO_SRC } from '../utils/brand';
 
 const stamp = () => ({ createdAt: nowIso(), updatedAt: nowIso(), synced: false });
 
@@ -39,6 +40,7 @@ const productSeed: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'synce
 export const defaultSettings = (): Settings => ({
   id: 'default',
   businessName: 'Nexus Retail Shop',
+  logo: DEFAULT_LOGO_SRC,
   currency: 'KES',
   taxRate: 0,
   receiptFooter: 'Thank you for shopping with us.',

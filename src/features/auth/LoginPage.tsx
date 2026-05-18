@@ -7,6 +7,7 @@ import { verifySecret } from '../../utils/security';
 import { useAppStore } from '../../store/appStore';
 import { InstallPrompt } from '../../components/InstallPrompt';
 import { StatusPills } from '../../components/StatusPills';
+import { logoSrc } from '../../utils/brand';
 
 const pinKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back'];
 
@@ -15,6 +16,7 @@ export const LoginPage = () => {
   const setUser = useAppStore((state) => state.setUser);
   const unlockSession = useAppStore((state) => state.unlockSession);
   const settings = useAppStore((state) => state.settings);
+  const appLogo = logoSrc(settings.logo);
   const locked = useAppStore((state) => state.locked);
   const [mode, setMode] = useState<'pin' | 'admin'>('pin');
   const [pin, setPin] = useState('');
@@ -68,8 +70,8 @@ export const LoginPage = () => {
       <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-lg bg-teal-700 text-lg font-black text-white">
-              {settings.logo ? <img src={settings.logo} alt="" className="h-full w-full object-cover" /> : 'NX'}
+            <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-lg bg-white shadow-soft">
+              <img src={appLogo} alt="" className="h-full w-full object-cover" />
             </div>
             <div>
               <h1 className="text-xl font-black">Nexus POS</h1>

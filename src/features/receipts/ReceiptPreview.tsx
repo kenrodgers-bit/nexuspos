@@ -1,10 +1,11 @@
 import type { Sale, SaleItem, Settings } from '../../db/schema';
 import { money, paymentLabel, shortDateTime } from '../../utils/format';
+import { logoSrc } from '../../utils/brand';
 
 export const ReceiptPreview = ({ sale, items, settings }: { sale: Sale; items: SaleItem[]; settings: Settings }) => (
   <div id="printable-receipt" className={`receipt-paper rounded-lg p-4 shadow-soft ${settings.receiptWidth === '58mm' ? 'receipt-paper-58' : ''}`}>
     <div className="text-center">
-      {settings.logo ? <img src={settings.logo} alt="" className="mx-auto mb-2 h-14 w-14 rounded object-cover" /> : null}
+      <img src={logoSrc(settings.logo)} alt="" className="mx-auto mb-2 h-14 w-14 rounded object-cover" />
       <h2 className="text-base font-bold">{settings.businessName}</h2>
       {settings.businessAddress ? <p>{settings.businessAddress}</p> : null}
       {settings.businessPhone ? <p>{settings.businessPhone}</p> : null}

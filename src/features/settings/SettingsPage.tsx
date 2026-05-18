@@ -11,10 +11,12 @@ import { exportBackup, parseBackupFile, restoreBackup } from '../../services/bac
 import { useAppStore } from '../../store/appStore';
 import { nowIso } from '../../utils/security';
 import { syncService } from '../../services/syncService';
+import { logoSrc } from '../../utils/brand';
 
 export const SettingsPage = () => {
   const settings = useAppStore((state) => state.settings);
   const setSettings = useAppStore((state) => state.setSettings);
+  const appLogo = logoSrc(settings.logo);
   const form = useForm<SettingsFormInput>({
     resolver: zodResolver(settingsFormSchema),
     values: settings
@@ -98,8 +100,8 @@ export const SettingsPage = () => {
         <div className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-3 font-bold">Business logo</h2>
-            <div className="mb-3 grid h-24 w-24 place-items-center overflow-hidden rounded-lg bg-teal-700 text-xl font-black text-white">
-              {settings.logo ? <img src={settings.logo} alt="" className="h-full w-full object-cover" /> : 'NX'}
+            <div className="mb-3 grid h-24 w-24 place-items-center overflow-hidden rounded-lg bg-white shadow-soft">
+              <img src={appLogo} alt="" className="h-full w-full object-cover" />
             </div>
             <label className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 font-semibold text-white dark:bg-white dark:text-slate-950">
               <Upload size={18} />

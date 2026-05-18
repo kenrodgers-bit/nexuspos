@@ -18,6 +18,7 @@ import { syncService } from './services/syncService';
 import { useAppStore } from './store/appStore';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { DEFAULT_LOGO_SRC } from './utils/brand';
 
 const ShellRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
@@ -65,7 +66,9 @@ export default function App() {
     return (
       <div className="grid min-h-screen place-items-center px-6 text-center text-slate-900 dark:text-white">
         <div>
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-lg bg-teal-700 text-lg font-black text-white">NX</div>
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center overflow-hidden rounded-lg bg-white shadow-soft">
+            <img src={DEFAULT_LOGO_SRC} alt="" className="h-full w-full object-cover" />
+          </div>
           <p className="font-semibold">Starting Nexus POS...</p>
           <p className="mt-1 text-sm text-slate-500">Preparing the offline database.</p>
         </div>

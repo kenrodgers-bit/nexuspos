@@ -6,6 +6,7 @@ import { useAppStore } from '../store/appStore';
 import { StatusPills } from './StatusPills';
 import { InstallPrompt } from './InstallPrompt';
 import { BusinessSetupPrompt } from './BusinessSetupPrompt';
+import { logoSrc } from '../utils/brand';
 
 const adminNavItems = [
   { to: '/', label: 'Home', icon: Home },
@@ -33,7 +34,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const currentUser = useAppStore((state) => state.currentUser);
   const setUser = useAppStore((state) => state.setUser);
-  const businessName = useAppStore((state) => state.settings.businessName);
+  const settings = useAppStore((state) => state.settings);
+  const businessName = settings.businessName;
+  const logo = logoSrc(settings.logo);
   const isPOS = location.pathname === '/pos';
   const navItems = currentUser?.role === 'cashier' ? cashierNavItems : adminNavItems;
   const logout = () => {
@@ -46,7 +49,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/92 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <Link to="/" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-teal-700 text-sm font-black text-white shadow-soft">NX</span>
+            <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-soft">
+              <img src={logo} alt="" className="h-full w-full object-cover" />
+            </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold leading-tight">{businessName}</span>
               <span className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
