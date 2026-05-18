@@ -70,7 +70,6 @@ export const POSPage = () => {
       if (current) return lines.map((line) => (line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line));
       return [...lines, { product, quantity: 1, discount: 0 }];
     });
-    setDrawerOpen(true);
   };
 
   const scanBarcode = (event: FormEvent) => {
