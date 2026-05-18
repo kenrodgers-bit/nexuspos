@@ -112,7 +112,7 @@ export const ProductsPage = () => {
     };
     if (editing) {
       await db.products.update(editing.id, data);
-      await syncService.queue('products', editing.id, 'update', { id: editing.id, ...data });
+      await syncService.queue('products', editing.id, 'update', { ...editing, ...data, id: editing.id });
       toast.success('Product updated');
     } else {
       const product: Product = { id: uuid(), ...data, createdAt: nowIso(), deleted: false };
@@ -126,8 +126,9 @@ export const ProductsPage = () => {
 
   const disableProduct = async (product: Product) => {
     if (!confirm(`Disable ${product.name}?`)) return;
-    await db.products.update(product.id, { active: false, deleted: true, updatedAt: nowIso(), synced: false });
-    await syncService.queue('products', product.id, 'delete', { id: product.id });
+    const update = { active: false, deleted: true, updatedAt: nowIso(), synced: false };
+    await db.products.update(product.id, update);
+    await syncService.queue('products', product.id, 'delete', { ...product, ...update });
     toast.success('Product disabled');
   };
 

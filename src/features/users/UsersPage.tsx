@@ -61,7 +61,7 @@ export const UsersPage = () => {
       if (passwordHash) update.passwordHash = passwordHash;
       if (pinHash) update.pinHash = pinHash;
       await db.users.update(editing.id, update);
-      await syncService.queue('users', editing.id, 'update', update);
+      await syncService.queue('users', editing.id, 'update', { ...editing, ...update, id: editing.id });
       toast.success('Staff account updated');
     } else {
       const user: User = {
@@ -85,8 +85,9 @@ export const UsersPage = () => {
       toast.error('You cannot deactivate your own account');
       return;
     }
-    await db.users.update(user.id, { active: !user.active, updatedAt: nowIso(), synced: false });
-    await syncService.queue('users', user.id, 'update', { active: !user.active });
+    const update = { active: !user.active, updatedAt: nowIso(), synced: false };
+    await db.users.update(user.id, update);
+    await syncService.queue('users', user.id, 'update', { ...user, ...update });
     toast.success(user.active ? 'Staff account deactivated' : 'Staff account reactivated');
   };
 

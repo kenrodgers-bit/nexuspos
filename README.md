@@ -9,7 +9,7 @@ Nexus POS is a mobile-first, installable Progressive Web App for offline retail 
 - Product, inventory, sales, receipts, reports, settings, users, backup, and restore workflows
 - Chemist-ready product records with generic name, strength, dosage form, batch number, expiry date, and prescription-required flags
 - POS terminal with search, barcode entry, category filters, cart drawer, discounts, tax, cash/M-Pesa/card payments, change calculation, prescription reference capture, and receipt generation
-- Sync queue with online/offline detection, retry logic, pending sync badge, and backend-ready adapter interface
+- Cloud sync queue with online/offline detection, retry logic, pending sync badge, and shared device sync through Vercel Functions + Upstash Redis
 - Self-service account page for admins to update passwords and cashiers to update PINs
 - Admin staff management for creating accounts, assigning roles, and deactivating staff away from work
 - Admin stock reset from Settings with inventory adjustment logs and sync queue entries
@@ -55,7 +55,9 @@ All core actions run locally:
 - Settings
 - Backup and restore
 
-Cloud sync is intentionally adapter-based. The current `MockSyncAdapter` marks queued events as synced when online. Replace it in `src/services/syncService.ts` with a real API adapter when a backend is available.
+Cloud sync is adapter-based and enabled by default. Local IndexedDB remains the offline working store and backup cache, while `/api/sync` persists queued changes to the shared Vercel Upstash KV store when internet is available. Other installed devices pull those cloud changes on app start, focus, reconnect, and every 30 seconds while open.
+
+Synced changes include products, stock movements, sales, receipts, staff accounts, hashed passwords, hashed cashier PINs, settings, backup-relevant records, and void requests. Plain passwords and PINs are never sent or stored.
 
 ## Backup And Restore
 
@@ -85,6 +87,15 @@ vercel --prod
 ```
 
 The included `vercel.json` rewrites SPA routes to `index.html` and prevents HTTP caching of app-shell HTML. Runtime business data is stored in IndexedDB, not HTTP cache.
+
+Cloud sync requires the connected Upstash KV integration environment variables:
+
+```text
+KV_REST_API_URL
+KV_REST_API_TOKEN
+```
+
+They are injected automatically when the Vercel Upstash KV resource is connected to the project.
 
 ## GitHub
 

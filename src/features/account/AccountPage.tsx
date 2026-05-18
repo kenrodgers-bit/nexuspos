@@ -61,7 +61,7 @@ export const AccountPage = () => {
         synced: false
       };
       await db.users.update(currentUser.id, update);
-      await syncService.queue('users', currentUser.id, 'update', { id: currentUser.id, username: update.username });
+      await syncService.queue('users', currentUser.id, 'update', { ...currentUser, ...update });
       await refreshUser();
       setCurrentPassword('');
       setNewPassword('');
@@ -88,12 +88,13 @@ export const AccountPage = () => {
     }
     setBusy(true);
     try {
-      await db.users.update(currentUser.id, {
+      const update = {
         pinHash: await hashSecret(newPin),
         updatedAt: nowIso(),
         synced: false
-      });
-      await syncService.queue('users', currentUser.id, 'update', { id: currentUser.id, pinChanged: true });
+      };
+      await db.users.update(currentUser.id, update);
+      await syncService.queue('users', currentUser.id, 'update', { ...currentUser, ...update });
       await refreshUser();
       setCurrentPin('');
       setNewPin('');

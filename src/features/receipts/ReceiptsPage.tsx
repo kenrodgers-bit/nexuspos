@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { v4 as uuid } from 'uuid';
 import { Printer, RotateCcw, Share2 } from 'lucide-react';
 import { db } from '../../db/db';
-import type { InventoryLog, Sale, SaleItem } from '../../db/schema';
+import type { InventoryLog, Product, Sale, SaleItem } from '../../db/schema';
 import { Modal } from '../../components/Modal';
 import { useLiveQuery } from '../../hooks/useLiveQuery';
 import { useAppStore } from '../../store/appStore';
@@ -59,7 +59,7 @@ export const ReceiptsPage = () => {
       synced: false
     };
     await db.sales.update(selected.sale.id, update);
-    await syncService.queue('sales', selected.sale.id, 'update', { id: selected.sale.id, ...update });
+    await syncService.queue('sales', selected.sale.id, 'update', { ...selected.sale, ...update });
     await refreshSelected(selected.sale.id);
     toast.success('Void request sent to admin');
   };
@@ -67,13 +67,24 @@ export const ReceiptsPage = () => {
   const reviewVoid = async (approved: boolean) => {
     if (!selected || !currentUser) return;
     const now = nowIso();
+    const productUpdates: Product[] = [];
+    const inventoryLogs: InventoryLog[] = [];
+    const saleUpdate: Partial<Sale> = {
+      status: approved ? 'voided' : 'completed',
+      voidRequestStatus: approved ? 'approved' : 'rejected',
+      voidReviewedAt: now,
+      voidReviewedBy: currentUser.id,
+      voidReviewNote: reviewNote ? sanitizeText(reviewNote) : undefined,
+      updatedAt: now,
+      synced: false
+    };
     await db.transaction('rw', db.sales, db.products, db.inventory_logs, async () => {
       if (approved) {
         for (const item of selected.items) {
           const product = await db.products.get(item.productId);
           if (!product) continue;
           const nextStock = product.stock + item.quantity;
-          await db.products.update(product.id, { stock: nextStock, updatedAt: now, synced: false });
+          const productUpdate: Product = { ...product, stock: nextStock, updatedAt: now, synced: false };
           const log: InventoryLog = {
             id: uuid(),
             productId: product.id,
@@ -90,20 +101,21 @@ export const ReceiptsPage = () => {
             synced: false,
             deleted: false
           };
+          productUpdates.push(productUpdate);
+          inventoryLogs.push(log);
+          await db.products.update(product.id, productUpdate);
           await db.inventory_logs.add(log);
         }
       }
-      await db.sales.update(selected.sale.id, {
-        status: approved ? 'voided' : 'completed',
-        voidRequestStatus: approved ? 'approved' : 'rejected',
-        voidReviewedAt: now,
-        voidReviewedBy: currentUser.id,
-        voidReviewNote: reviewNote ? sanitizeText(reviewNote) : undefined,
-        updatedAt: now,
-        synced: false
-      } satisfies Partial<Sale>);
+      await db.sales.update(selected.sale.id, saleUpdate);
     });
-    await syncService.queue('sales', selected.sale.id, 'update', { id: selected.sale.id, voidReview: approved ? 'approved' : 'rejected' });
+    await syncService.queue('sales', selected.sale.id, 'update', {
+      ...selected.sale,
+      id: selected.sale.id,
+      ...saleUpdate,
+      productUpdates,
+      inventoryLogs
+    });
     await refreshSelected(selected.sale.id);
     toast.success(approved ? 'Sale voided and stock restored' : 'Void request rejected');
   };

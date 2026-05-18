@@ -41,6 +41,7 @@ export const SettingsPage = () => {
     const next = { ...settings, logo: dataUrl, updatedAt: nowIso(), synced: false };
     await db.settings.put(next);
     setSettings(next);
+    await syncService.queue('settings', 'default', 'update', next);
     toast.success('Logo saved offline');
   };
 
@@ -109,7 +110,7 @@ export const SettingsPage = () => {
 
     await Promise.all([
       ...changedProducts.map((product) =>
-        syncService.queue('products', product.id, 'update', { id: product.id, stock: nextStock, updatedAt: now })
+        syncService.queue('products', product.id, 'update', { ...product, stock: nextStock, updatedAt: now, synced: false })
       ),
       ...logs.map((log) => syncService.queue('inventory_logs', log.id, 'inventory', log))
     ]);

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { v4 as uuid } from 'uuid';
 import { Barcode, Minus, Plus, ReceiptText, Search, Share2, ShoppingCart, X } from 'lucide-react';
 import { db } from '../../db/db';
-import type { Category, PaymentMethod, Product, Sale, SaleItem } from '../../db/schema';
+import type { Category, InventoryLog, PaymentMethod, Product, Sale, SaleItem } from '../../db/schema';
 import { Modal } from '../../components/Modal';
 import { ReceiptPreview } from '../receipts/ReceiptPreview';
 import { useAppStore } from '../../store/appStore';
@@ -186,32 +186,39 @@ export const POSPage = () => {
     };
 
     try {
+      const productUpdates: Product[] = [];
+      const inventoryLogs: InventoryLog[] = [];
       await db.transaction('rw', db.sales, db.sale_items, db.products, db.inventory_logs, async () => {
         for (const line of cart) {
           const fresh = await db.products.get(line.product.id);
           if (!fresh || fresh.stock < line.quantity) throw new Error(`${line.product.name} has insufficient stock`);
           if (isExpired(fresh.expiryDate)) throw new Error(`${line.product.name} is expired`);
-          await db.products.update(fresh.id, { stock: fresh.stock - line.quantity, updatedAt: nowIso(), synced: false });
-          await db.inventory_logs.add({
+          const nextStock = fresh.stock - line.quantity;
+          const productUpdate: Product = { ...fresh, stock: nextStock, updatedAt: createdAt, synced: false };
+          const log: InventoryLog = {
             id: uuid(),
             productId: fresh.id,
             productName: fresh.name,
             type: 'sale',
             quantityChange: -line.quantity,
             previousStock: fresh.stock,
-            newStock: fresh.stock - line.quantity,
+            newStock: nextStock,
             userId: currentUser.id,
             userName: currentUser.name,
             createdAt,
             updatedAt: createdAt,
             synced: false,
             deleted: false
-          });
+          };
+          productUpdates.push(productUpdate);
+          inventoryLogs.push(log);
+          await db.products.update(fresh.id, productUpdate);
+          await db.inventory_logs.add(log);
         }
         await db.sales.add(sale);
         await db.sale_items.bulkAdd(saleItems);
       });
-      await syncService.queue('sales', sale.id, 'sale', { sale, items: saleItems });
+      await syncService.queue('sales', sale.id, 'sale', { sale, items: saleItems, productUpdates, inventoryLogs });
       setLastReceipt({ sale, items: saleItems });
       setDrawerOpen(false);
       setCart([]);

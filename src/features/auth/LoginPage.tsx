@@ -8,6 +8,7 @@ import { useAppStore } from '../../store/appStore';
 import { InstallPrompt } from '../../components/InstallPrompt';
 import { StatusPills } from '../../components/StatusPills';
 import { logoSrc } from '../../utils/brand';
+import { syncService } from '../../services/syncService';
 
 const pinKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back'];
 
@@ -25,9 +26,12 @@ export const LoginPage = () => {
   const [busy, setBusy] = useState(false);
 
   const finishLogin = async (userId: string) => {
-    await db.users.update(userId, { lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString(), synced: false });
+    const loginAt = new Date().toISOString();
+    const update = { lastLoginAt: loginAt, updatedAt: loginAt, synced: false };
+    await db.users.update(userId, update);
     const user = await db.users.get(userId);
     if (!user) return;
+    await syncService.queue('users', userId, 'update', user);
     setUser(user);
     unlockSession();
     navigate('/', { replace: true });

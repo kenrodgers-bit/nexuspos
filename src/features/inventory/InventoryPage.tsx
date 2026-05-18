@@ -36,6 +36,8 @@ export const InventoryPage = () => {
       toast.error('Stock cannot go below zero');
       return;
     }
+    const updatedAt = nowIso();
+    const productUpdate: Product = { ...product, stock: nextStock, updatedAt, synced: false };
     const log: InventoryLog = {
       id: uuid(),
       productId: product.id,
@@ -48,15 +50,16 @@ export const InventoryPage = () => {
       note: input.note ? sanitizeText(input.note) : undefined,
       userId: user.id,
       userName: user.name,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
+      createdAt: updatedAt,
+      updatedAt,
       synced: false,
       deleted: false
     };
     await db.transaction('rw', db.products, db.inventory_logs, async () => {
-      await db.products.update(product.id, { stock: nextStock, updatedAt: nowIso(), synced: false });
+      await db.products.update(product.id, productUpdate);
       await db.inventory_logs.add(log);
     });
+    await syncService.queue('products', product.id, 'update', productUpdate);
     await syncService.queue('inventory_logs', log.id, 'inventory', log);
     form.reset({ productId: product.id, quantity: 1, supplier: '', note: '', type: 'restock' });
     toast.success('Inventory updated offline');
