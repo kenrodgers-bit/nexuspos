@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, Boxes, Home, LogOut, Package, ReceiptText, Settings, ShieldCheck, ShoppingCart, Users } from 'lucide-react';
+import { BarChart3, Boxes, Home, LogOut, Package, ReceiptText, Settings, ShieldCheck, ShoppingCart, UserCircle, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppStore } from '../store/appStore';
 import { StatusPills } from './StatusPills';
@@ -11,13 +11,14 @@ const navItems = [
   { to: '/pos', label: 'POS', icon: ShoppingCart },
   { to: '/products', label: 'Items', icon: Package },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/settings', label: 'More', icon: Settings }
+  { to: '/account', label: 'Account', icon: UserCircle }
 ];
 
 const moreItems = [
   { to: '/inventory', label: 'Inventory', icon: Boxes },
   { to: '/receipts', label: 'Receipts', icon: ReceiptText },
-  { to: '/users', label: 'Users', icon: Users }
+  { to: '/users', label: 'Staff', icon: Users, adminOnly: true },
+  { to: '/settings', label: 'Settings', icon: Settings, adminOnly: true }
 ];
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
@@ -83,7 +84,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </nav>
 
       <aside className="fixed left-4 top-24 z-20 hidden w-44 space-y-2 lg:block">
-        {moreItems.map((item) => (
+        {moreItems.filter((item) => !item.adminOnly || currentUser?.role === 'admin').map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

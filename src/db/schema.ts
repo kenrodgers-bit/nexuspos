@@ -162,11 +162,8 @@ export const userFormSchema = z
     active: z.boolean()
   })
   .superRefine((value, ctx) => {
-    if (value.role === 'admin' && !value.password && !value.username) {
-      ctx.addIssue({ code: 'custom', message: 'Admin users need a username and password', path: ['username'] });
-    }
-    if (value.role === 'cashier' && !value.pin) {
-      ctx.addIssue({ code: 'custom', message: 'Cashiers need a PIN', path: ['pin'] });
+    if (value.role === 'admin' && !value.username) {
+      ctx.addIssue({ code: 'custom', message: 'Admin users need a username', path: ['username'] });
     }
   });
 

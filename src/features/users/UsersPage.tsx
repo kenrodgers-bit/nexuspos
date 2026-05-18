@@ -12,8 +12,10 @@ import { useLiveQuery } from '../../hooks/useLiveQuery';
 import { hashSecret, nowIso, sanitizeText } from '../../utils/security';
 import { shortDateTime } from '../../utils/format';
 import { syncService } from '../../services/syncService';
+import { useAppStore } from '../../store/appStore';
 
 export const UsersPage = () => {
+  const currentUser = useAppStore((state) => state.currentUser);
   const users = useLiveQuery(() => db.users.toArray(), [], [] as User[]);
   const sales = useLiveQuery(() => db.sales.toArray(), [], []);
   const [open, setOpen] = useState(false);
@@ -36,6 +38,14 @@ export const UsersPage = () => {
   sales.forEach((sale) => activityByUser.set(sale.cashierId, (activityByUser.get(sale.cashierId) ?? 0) + 1));
 
   const saveUser = form.handleSubmit(async (input) => {
+    if (!editing && input.role === 'cashier' && !input.pin) {
+      toast.error('New staff cashier accounts need a PIN');
+      return;
+    }
+    if (!editing && input.role === 'admin' && !input.password) {
+      toast.error('New admin accounts need a password');
+      return;
+    }
     const base = {
       name: sanitizeText(input.name),
       username: input.username ? sanitizeText(input.username) : undefined,
@@ -52,7 +62,7 @@ export const UsersPage = () => {
       if (pinHash) update.pinHash = pinHash;
       await db.users.update(editing.id, update);
       await syncService.queue('users', editing.id, 'update', update);
-      toast.success('User updated');
+      toast.success('Staff account updated');
     } else {
       const user: User = {
         id: uuid(),
@@ -64,23 +74,28 @@ export const UsersPage = () => {
       };
       await db.users.add(user);
       await syncService.queue('users', user.id, 'create', user);
-      toast.success('User added');
+      toast.success('Staff account added');
     }
     setOpen(false);
     setEditing(null);
   });
 
   const disable = async (user: User) => {
+    if (user.id === currentUser?.id && user.active) {
+      toast.error('You cannot deactivate your own account');
+      return;
+    }
     await db.users.update(user.id, { active: !user.active, updatedAt: nowIso(), synced: false });
     await syncService.queue('users', user.id, 'update', { active: !user.active });
+    toast.success(user.active ? 'Staff account deactivated' : 'Staff account reactivated');
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black">Users</h1>
-          <p className="text-sm text-slate-500">Admin-only cashier management, hashed PINs, roles, activity.</p>
+          <h1 className="text-2xl font-black">Staff accounts</h1>
+          <p className="text-sm text-slate-500">Create staff logins, assign roles, and deactivate accounts for staff away from work.</p>
         </div>
         <button
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 font-semibold text-white"
@@ -90,7 +105,7 @@ export const UsersPage = () => {
           }}
         >
           <Plus size={18} />
-          Add user
+          Add staff
         </button>
       </div>
 
@@ -122,14 +137,14 @@ export const UsersPage = () => {
                 Edit
               </button>
               <button className="min-h-11 rounded-lg bg-amber-50 font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-100" onClick={() => void disable(user)}>
-                {user.active ? 'Disable' : 'Enable'}
+                {user.active ? 'Deactivate' : 'Reactivate'}
               </button>
             </div>
           </article>
         ))}
       </div>
 
-      <Modal open={open} title={editing ? 'Edit user' : 'Add user'} onClose={() => setOpen(false)}>
+      <Modal open={open} title={editing ? 'Edit staff account' : 'Add staff account'} onClose={() => setOpen(false)}>
         <form className="space-y-3" onSubmit={saveUser}>
           <Input label="Name" error={form.formState.errors.name?.message} {...form.register('name')} />
           <label className="block text-sm font-semibold">
@@ -146,7 +161,7 @@ export const UsersPage = () => {
             <input type="checkbox" className="h-5 w-5 accent-teal-700" {...form.register('active')} />
             Active user
           </label>
-          <button className="min-h-12 w-full rounded-lg bg-teal-700 font-semibold text-white">Save user</button>
+          <button className="min-h-12 w-full rounded-lg bg-teal-700 font-semibold text-white">Save staff</button>
         </form>
       </Modal>
     </div>

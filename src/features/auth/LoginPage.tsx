@@ -111,7 +111,7 @@ export const LoginPage = () => {
           <div>
             <div className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
               <LockKeyhole size={22} className="text-teal-700" />
-              <span className="font-mono text-2xl tracking-[0.6em]">{pin.padEnd(4, '•').slice(0, 8)}</span>
+              <span className="font-mono text-2xl tracking-[0.6em]">{pin.padEnd(4, '*').slice(0, 8)}</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {pinKeys.map((key) => (

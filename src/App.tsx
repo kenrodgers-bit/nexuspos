@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { initializeDatabase, getSettings } from './db/seed';
+import { AccountPage } from './features/account/AccountPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
 import { LoginPage } from './features/auth/LoginPage';
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/inventory" element={<ShellRoute><InventoryPage /></ShellRoute>} />
         <Route path="/reports" element={<ShellRoute><ReportsPage /></ShellRoute>} />
         <Route path="/receipts" element={<ShellRoute><ReceiptsPage /></ShellRoute>} />
+        <Route path="/account" element={<ShellRoute><AccountPage /></ShellRoute>} />
         <Route path="/settings" element={<ShellRoute><ProtectedRoute role="admin"><SettingsPage /></ProtectedRoute></ShellRoute>} />
         <Route path="/users" element={<ShellRoute><ProtectedRoute role="admin"><UsersPage /></ProtectedRoute></ShellRoute>} />
         <Route path="*" element={<ShellRoute><DashboardPage /></ShellRoute>} />
